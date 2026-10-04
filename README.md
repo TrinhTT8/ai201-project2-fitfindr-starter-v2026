@@ -59,24 +59,24 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** This tool searches and returns a specific item that a user is searching for based on the given keywords.
+- **Inputs:** `description` (str), `title` (str)
+- **Returns:** A list of listing dicts, each with `title`, `description`, `price`, `brand` and `platform`
+- **When it has nothing:** Return a message telling the user that there is no matching result. 
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Asks the model to suggest one or two outfits built around a single thrifted item, combining it with specific pieces the user already owns in their wardrobe.
+- **Inputs:** `new_item` (dict): one listing dict, the item the user is considering, with fields like `title`, `category`, `colors`, `style_tags` and `price`; `wardrobe` (dict): a dict with an `items` key holding a list of the user's clothing items (this list may be empty).
+- **Returns:** A non-empty string (str) containing one or two outfit suggestions, each naming the new item plus specific pieces from `wardrobe['items']` and how to wear them together.
+- **When it has nothing:** If `wardrobe['items']` is empty, it doesn't raise or return `""`. It returns a non-empty string of general styling advice for the item instead (what kinds of pieces, colors and occasions it pairs well with).
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Asks the model to write a short, casual social-media caption about the thrifted find and how it's styled. It should read like a real post, not a product description, and come out differently on each run.
+- **Inputs:** `outfit` (str): the outfit suggestion string returned by `suggest_outfit()`; `new_item` (dict): the listing dict for the item, with fields like `title`, `price`, `platform`, `colors` and `style_tags`.
+- **Returns:** A non-empty string (str): a two-to-four sentence caption that mentions the item, its price and its platform once each, and is specific about the vibe of the outfit.
+- **When it has nothing:** If `outfit` is empty or whitespace-only, it doesn't raise or call the model. It returns a non-empty descriptive message saying no outfit was provided, so a caption couldn't be written.
 
 ---
 
@@ -93,13 +93,13 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If search_listings return an empty list, put a message in the session suggesting the user change their max price, try another size, or use different keywords and stop the run without calling suggest_outfit or create_fit_card. Otherwise, store the first best result in session["selected_item"] and pass it to suggest_outfit, then create_fit_card. 
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** The query is parsed using regex and asking the model. <!-- regex, string splitting, or asking the model — say which -->
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** The query is parsed into session["parsed"] (description, size, max_price), which search_listings uses; its results go into session["search_results"]. The loop picks the first result as session["selected_item"]. suggest_outfit takes selected_item and session["wardrobe"] and stores its outfit string in session["outfit_suggestion"]. create_fit_card takes outfit_suggestion and selected_item and stores the caption in session["fit_card"]. If the search comes back empty, session["error"] is set and the later fields stay None. <!-- which fields, in what order -->
 
 ---
 
