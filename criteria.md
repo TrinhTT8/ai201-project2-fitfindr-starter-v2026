@@ -39,12 +39,16 @@ Some phrasing will not contain fuzzy keywords, so 4 out of 5 is a reasonable met
 Given a query that matches no listings, the agent stops before calling
 `suggest_outfit` and returns a message naming what to change — 5 of 5 tries.
 
+Each try uses a different impossible query: one that fails on price, one on
+size, one on keywords, one that states the price in a form `_PRICE_RE` doesn't
+recognize (e.g. "under five dollars"), and one that combines constraints.
+
 **Why this target:**
 
 <!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
      about this path? -->
 
-Stopping is a plain if in run_agent that checks for an empty list from search_listings. No model makes that decision, so unlike criterion 1, there's no fuzzy matching to forgive and it should behave the same every time. If it ever fails, the likely cause is the parsing step dropping a constraint like the size or price, which loosens the search enough to return something.
+Stopping is a plain if in run_agent that checks for an empty list from search_listings. No model makes that decision, so unlike criterion 1, there's no fuzzy matching to forgive and it should behave the same every time. If it ever fails, the likely cause is the parsing step dropping a constraint like the size or price, which loosens the search enough to return something. Since the same query would give the same answer all five times, each try uses a different query so each one can fail in its own way.
 
 ---
 
@@ -60,11 +64,11 @@ Stopping is a plain if in run_agent that checks for an empty list from search_li
      compares session["selected_item"] against what actually reached
      suggest_outfit is the shape you're after. -->
 
-For a matching query, the listing `id` in `session["selected_item"]` is the same `id` the trace shows going into `suggest_outfit` and into `create_fit_card` (and it is one of the `id`s in `session["search_results"]`), in 5 of 5 tries.
+Across 5 different matching queries, the listing `id` in `session["selected_item"]` is the `id` of `session["search_results"][0]`, and it is the same `id` the trace shows going into `suggest_outfit` and into `create_fit_card` — in 5 of 5 tries.
 
 **Why this target:**
 
-Passing state involves no model and no randomness. It's plain Python reading values back out of the session dict, so it should never vary between runs. Any mismatch at all means a real bug, such as a stale value from an earlier step or an overwritten variable, and it would show up looking like a bad outfit or caption rather than a state problem. So anything less than 5 of 5 isn't acceptable.
+Passing state involves no model and no randomness. It's plain Python reading values back out of the session dict, so it should never vary between runs. Any mismatch at all means a real bug, such as a stale value from an earlier step or an overwritten variable, and it would show up looking like a bad outfit or caption rather than a state problem. So anything less than 5 of 5 isn't acceptable. The `id` has to be the first result, not just any result, because the agent's rule is to use the top match, and "one of the results" would still pass if the wrong one were picked. Each try uses a different query so the compared `id`s actually change between tries.
 
 ---
 
@@ -81,11 +85,11 @@ Passing state involves no model and no randomness. It's plain Python reading val
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
 
-Across 5 runs of create_fit_card on the same item, at least 4 of the 5 captions share no sentence word-for-word with any other caption.
+Across 5 runs of create_fit_card on the same item, at most 1 of the 10 pairs of captions shares a sentence word-for-word. A sentence is text split on `.`, `!` or `?`; two sentences match if they are identical after lowercasing and removing emoji and extra spaces.
 
 **Why this target:**
 
-A caption is supposed to feel like a fresh post, so getting the same sentences back defeats the point of asking for one. The caption comes from the model, though, and short captions about the same item can land on a common phrase by chance (like "Thrifted this for $18!"), so one repeat in five is tolerable. More than that wouldn't be chance: it would mean `CACHE_ENABLED` is returning a stored answer or `TEMPERATURE` is set to 0.0 in `config.py`, which is exactly what this target is meant to catch.
+A caption is supposed to feel like a fresh post, so getting the same sentences back defeats the point of asking for one. The caption comes from the model, though, and short captions about the same item can land on a common phrase by chance (like "Thrifted this for $18!"), so one repeated pair is tolerable. I count pairs rather than captions because a shared sentence always involves two captions, so "4 of 5 captions" would really have meant 5 of 5. More than one repeated pair wouldn't be chance: since `run_eval.py` turns the cache off, it would mean `TEMPERATURE` is too low in `config.py` or my prompt is pushing the model toward a fixed template, which is exactly what this target is meant to catch.
 
 ---
 
@@ -98,11 +102,11 @@ A caption is supposed to feel like a fresh post, so getting the same sentences b
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
 
-Given a `max_price`, every listing `search_listings` returns has a `price` at or below that `max_price` (inclusive), and when no listing is priced at or below it, `search_listings` returns an empty list — in 5 of 5 tries.
+Given a `max_price`, every listing `search_listings` returns has a `price` at or below that `max_price` (inclusive), and when no listing is priced at or below it, `search_listings` returns an empty list — in 5 of 5 tries. Each try uses a different ceiling: one equal to an exact listing price, one below the cheapest listing, one with cents (e.g. `29.99`), and two ordinary budgets.
 
 **Why this target:**
 
-The price filter is a plain numeric comparison in my own code, with no model and no fuzzy matching involved, so it should give the same right answer every time. A user who sets a budget and sees an item over it would stop trusting the search, and a single over-budget result means the filter is broken. Returning an empty list rather than None matters too, because the planning loop branches on that empty list.
+The price filter is a plain numeric comparison in my own code, with no model and no fuzzy matching involved, so it should give the same right answer every time. A user who sets a budget and sees an item over it would stop trusting the search, and a single over-budget result means the filter is broken. Returning an empty list rather than None matters too, because the planning loop branches on that empty list. The ceilings vary because the same one would pass identically five times; the exact-price and below-cheapest cases test the `<=` boundary and the empty-list path, which are where a bug would actually show.
 
 ---
 

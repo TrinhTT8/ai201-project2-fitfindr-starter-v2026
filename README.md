@@ -41,7 +41,7 @@
 
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
 
-
+In this repo, the user will be able to search for a thirfted product within the provided listings and receive outfit recommendations as well as a generated caption post for their social media. The user will need to tell the model what they are looking for, such as "vintage graphic tee under $20, size M", and the application will search for the matching listings and feed the best one to the model. The model will provide two outfit recommendations to the user and a unique caption related to the style of the outfits.
 
 ---
 
@@ -62,7 +62,7 @@
 - **What it does:** This tool searches and returns a specific item that a user is searching for based on the given keywords.
 - **Inputs:** `description` (str), `title` (str)
 - **Returns:** A list of listing dicts, each with `title`, `description`, `price`, `brand` and `platform`
-- **When it has nothing:** Return a message telling the user that there is no matching result. 
+- **When it has nothing:** Return a message telling the user that there is no matching result.
 
 ### `suggest_outfit`
 
@@ -93,7 +93,7 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:** If search_listings return an empty list, put a message in the session suggesting the user change their max price, try another size, or use different keywords and stop the run without calling suggest_outfit or create_fit_card. Otherwise, store the first best result in session["selected_item"] and pass it to suggest_outfit, then create_fit_card. 
+**Branch rule:** If search_listings return an empty list, put a message in the session suggesting the user change their max price, try another size, or use different keywords and stop the run without calling suggest_outfit or create_fit_card. Otherwise, store the first best result in session["selected_item"] and pass it to suggest_outfit, then create_fit_card.
 
 **Where it lives:** `agent.py::run_agent`
 
@@ -113,26 +113,41 @@
 **One full query**
 
 ```
-$ python app.py ask '...'
+$ python app.py ask 'vintage graphic tee under $130, size XL'
 
 ```
+
+Found: Oversized Crewneck Sweatshirt — Vintage Navy — $20.0 on thredUp
+
+Outfit: Here are two great ways to style your new vintage navy crewneck:
+
+- **Casual Denim-on-Denim:** Pair the vintage navy crewneck with your baggy straight-leg jeans, dark wash, and chunky white sneakers, accented by the brown leather belt and black crossbody bag. This creates a classic, effortless monochrome blue look where the white sneakers add a crisp, fresh pop of contrast.
+- **Smart-Casual Contrast:** Style the oversized crewneck sweatshirt — vintage navy over your wide-leg khaki trousers, finished with black combat boots and the black crossbody bag. The deep navy pairs naturally with warm khaki for a preppy, grounded vibe, while the combat boots add a cool edge to the tailored trousers.
+
+Fit card: Scored this vintage navy crewneck on thredUp for just $20 and it's already my new entire personality. I'm living in it with baggy jeans and chunky sneakers for lazy coffee runs, but it looks surprisingly sick dressed up with wide-leg trousers and boots. Truly nothing beats a heavy, broken-in sweatshirt that looks like it actually has a history.
 
 **The three tools, tested one at a time**
 
 ```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
-
 ```
 
-```
-$ python -c "from tools import suggest_outfit; ..."
+[{'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', 'description': 'Vintage-style bootleg tee with faded graphic. Slightly boxy fit. 100% cotton, soft and worn-in.', 'category': 'tops', 'style_tags': ['graphic tee', 'vintage', 'grunge', 'streetwear', 'band tee'], 'size': 'L', 'condition': 'good', 'price': 24.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'description': 'Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.', 'category': 'tops', 'style_tags': ['y2k', 'vintage', 'graphic tee', 'cottagecore'], 'size': 'S/M', 'condition': 'excellent', 'price': 18.0, 'colors': ['white', 'pink', 'purple'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_033', 'title': 'Vintage Band Tee — Faded Grey', 'description': 'Faded grey band-style tee with distressed graphic. Crew neck. Fits boxy. Well-loved but no holes or major damage.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'band tee', 'graphic tee', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 19.0, 'colors': ['grey', 'charcoal'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_015', 'title': 'Vintage Graphic Hoodie — Faded Black', 'description': 'Faded black pullover hoodie with barely-visible vintage graphic on the chest. Cozy interior. Some pilling but adds to the worn-in look.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'graphic', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 26.0, 'colors': ['black', 'charcoal'], 'brand':None, 'platform': 'depop'}, {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'description': 'Sheer black mesh long-sleeve. Great for layering under a graphic tee or over a bralette. Stretchy material, fits true to size.', 'category': 'tops', 'style_tags': ['y2k', 'grunge', 'goth', 'layering'], 'size': 'S/M', 'condition': 'excellent', 'price': 15.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_011', 'title': 'Low-Rise Cargo Pants — Khaki', 'description': 'Y2K era low-rise cargo pants. Lots of pockets. Khaki color, slightly distressed at the hems. Great for layering with a long tee.', 'category': 'bottoms', 'style_tags': ['y2k', 'cargo', '2000s', 'streetwear'], 'size': 'W29', 'condition': 'fair', 'price': 27.0, 'colors': ['khaki', 'tan'], 'brand': None, 'platform': 'poshmark'}]
 
 ```
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
+```
+
+Here are a couple of ways to style those vintage Levi's:
+
+- **Streetwear Casual:** Pair the medium wash jeans with the white ribbed tank top, layered under the oversized grey crewneck sweatshirt. Finish the look with chunky white sneakers and the black crossbody bag for an effortless, everyday vibe that plays on classic streetwear proportions.
+- **Edgy Denim on Denim:** Contrast the blue wash by pairing the jeans with the black cropped zip hoodie and the vintage black denim jacket. Ground the outfit with black combat boots and cinch it together using the brown leather belt for a cool, textured monochrome contrast.
 
 ```
-$ python -c "from tools import create_fit_card; ..."
-
+$ python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
 ```
+
+Nothing beats finding the holy grail pair of vintage Levi's 501s while randomly scrolling on Depop. Snagged these for $38 and they fit like an absolute dream with just my beat-up white sneakers and ababy tee. The wash is pure casual perfection and I'm never taking them off.
 
 ---
 
@@ -147,15 +162,15 @@ $ python -c "from tools import create_fit_card; ..."
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- _What I asked for:_ I asked Claude to analyze my criterias and evaluate whether they are measurables and will provide a good guidelines to the model.
+- _What came back:_ It gave me a thorough analysis of my crtierias and explained which one has poor wordings that would make my criterias impossible to test.
+- _What I changed:_ Based on Claude's feedback, I revised my criterias accordingly by providing more details and adjusting the testing logic.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- _What I asked for:_ I asked Claude to assist me with writing the tools' functions and had it created a template for me to fill out the variables/logics.
+- _What came back:_ It wrote the templates and inserted them at the corresponding spots. The templates have placeholder sections for me to go through and fill out.
+- _What I changed:_ I finished the functions by filling out all the placeholder sections while reading through Claude's explanations.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
@@ -176,12 +191,12 @@ $ python -c "from tools import create_fit_card; ..."
      into results/. Paste it here and fill in the verdicts. -->
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
-|---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| --------- | ------ | ----- | ----- | ----- | ----- | ----- | ------- |
+| 1.        |        |       |       |       |       |       |         |
+| 2.        |        |       |       |       |       |       |         |
+| 3.        |        |       |       |       |       |       |         |
+| 4.        |        |       |       |       |       |       |         |
+| 5.        |        |       |       |       |       |       |         |
 
 **Real output from one try**, pasted as text, naming the file and function
 that produced it:
@@ -210,17 +225,15 @@ that produced it:
      Look for a pattern. Three misses on the same tool is one problem, not
      three. -->
 
-| # | Criterion | Target | Verdict | How I decided |
-|---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| #   | Criterion | Target | Verdict | How I decided |
+| --- | --------- | ------ | ------- | ------------- |
+| 1   |           |        |         |               |
+| 2   |           |        |         |               |
+| 3   |           |        |         |               |
+| 4   |           |        |         |               |
+| 5   |           |        |         |               |
 
 **Diagnoses**
-
-
 
 ---
 
@@ -253,8 +266,6 @@ behaved differently afterwards. If the rewire didn't work, say exactly where it
 broke — the error text and the last thing that worked. That earns the point in
 full. -->
 
-
-
 ---
 
 ## The Improvement
@@ -271,19 +282,17 @@ full. -->
 ### Run Log — After
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
-|---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| --------- | ------ | ----- | ----- | ----- | ----- | ----- | ------- |
+| 1.        |        |       |       |       |       |       |         |
+| 2.        |        |       |       |       |       |       |         |
+| 3.        |        |       |       |       |       |       |         |
+| 4.        |        |       |       |       |       |       |         |
+| 5.        |        |       |       |       |       |       |         |
 
 **Did it help, and how do I know:**
 
 <!-- If it made things worse, say that. Honestly reported, that earns full
      credit and is more interesting than one that worked. -->
-
-
 
 ---
 
@@ -292,8 +301,6 @@ full. -->
 <!-- For each criterion still missed: what you'd do, and why you stopped where
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
-
-
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
