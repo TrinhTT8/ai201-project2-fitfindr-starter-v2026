@@ -59,10 +59,10 @@ In this repo, the user will be able to search for a thirfted product within the 
 
 ### `search_listings`
 
-- **What it does:** This tool searches and returns a specific item that a user is searching for based on the given keywords.
-- **Inputs:** `description` (str), `title` (str)
-- **Returns:** A list of listing dicts, each with `title`, `description`, `price`, `brand` and `platform`
-- **When it has nothing:** Return a message telling the user that there is no matching result.
+- **What it does:** This tool searches the catalog of 40 listings and returns the items that best match the user's keywords, filtered by size and price when given.
+- **Inputs:** `description` (str, required): keywords for the item; `size` (str or None, optional): matched case-insensitively against whole size tokens, so "M" matches "S/M" but "S" does not match "US 9", and "One Size" listings always match; `max_price` (float or None, optional): price ceiling in US dollars, inclusive
+- **Returns:** A list of up to 10 listing dicts, best match first, each with `id`, `title`, `description`, `category`, `style_tags`, `size`, `condition`, `price`, `colors`, `brand` (often None) and `platform`
+- **When it has nothing:** Returns an empty list `[]` (not None, not an exception). The agent then puts a message in the session telling the user to change their inputs.
 
 ### `suggest_outfit`
 

@@ -68,21 +68,36 @@ mcp = FastMCP("fitfindr", log_level="WARNING")
 
 
 # ── TODO: uncomment and fill this in ──────────────────────────────────────────
-#
-# @mcp.tool()
-# def search_listings(
-#     description: str,
-#     size: str | None = None,
-#     max_price: float | None = None,
-# ) -> list[dict]:
-#     """
-#     <-- YOUR DESCRIPTION GOES HERE.
-#
-#         One or two sentences. What does this tool do, what does it need, and
-#         what does it give back when it finds nothing? Written for a reader
-#         who cannot see the code.
-#     """
-#     return _search_listings_impl(description, size, max_price)
+
+@mcp.tool()
+def search_listings(
+        description: str,
+        size: str | None = None,
+        max_price: float | None = None,
+    ) -> list[dict]:
+        """
+        Search a fixed catalog of 40 secondhand clothing listings by keyword,
+        with optional size and price filters.
+
+        Inputs:
+          description (str, required): keywords for the item, e.g. "vintage graphic tee".
+              Listings are scored by keyword overlap with their title, description,
+              category, style tags, colors and brand; title matches count double.
+          size (str, optional): a size such as "M", "L" or "US 9". Matched
+              case-insensitively against whole size tokens, so "M" matches "S/M"
+              but "S" does not match "US 9". "One Size" listings always match.
+              Omit to skip size filtering.
+          max_price (number, optional): price ceiling in US dollars, inclusive
+              (30 keeps a $30.00 item). Omit to skip price filtering.
+
+        Returns a list of up to 10 listing dicts, best match first. Each has:
+        id, title, description, category, style_tags (list[str]), size, condition,
+        price (float, USD), colors (list[str]), brand (str or null, usually null)
+        and platform.
+
+        When nothing matches, returns an empty list [].
+        """
+        return _search_listings_impl(description, size, max_price)
 #
 # ──────────────────────────────────────────────────────────────────────────────
 #
