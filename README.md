@@ -97,7 +97,7 @@ In this repo, the user will be able to search for a thirfted product within the 
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** The query is parsed using regex and asking the model. <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** The query is parsed using regex. <!-- regex, string splitting, or asking the model — say which -->
 
 **What moves through the session:** The query is parsed into session["parsed"] (description, size, max_price), which search_listings uses; its results go into session["search_results"]. The loop picks the first result as session["selected_item"]. suggest_outfit takes selected_item and session["wardrobe"] and stores its outfit string in session["outfit_suggestion"]. create_fit_card takes outfit_suggestion and selected_item and stores the caption in session["fit_card"]. If the search comes back empty, session["error"] is set and the later fields stay None. <!-- which fields, in what order -->
 
@@ -192,17 +192,92 @@ Nothing beats finding the holy grail pair of vintage Levi's 501s while randomly 
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 | --------- | ------ | ----- | ----- | ----- | ----- | ----- | ------- |
-| 1.        |        |       |       |       |       |       |         |
-| 2.        |        |       |       |       |       |       |         |
-| 3.        |        |       |       |       |       |       |         |
-| 4.        |        |       |       |       |       |       |         |
-| 5.        |        |       |       |       |       |       |         |
+| 1. Matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before `suggest_outfit` | 5 of 5 | PASS | PASS | PASS | FAIL | PASS | MISSED (4/5) |
+| 3. Selected item `id` matches across session and trace | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit cards on the same item don't repeat sentences | At most 1 of 10 caption pairs share a sentence | PASS | PASS | PASS | PASS | PASS | MET (0 of 10 pairs) |
+| 5. Search results stay within `max_price` | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+Source: `results/run_2026-10-12_1509_before.md`, produced by `run_eval.py::main` (5 tries per scenario, caching off, temperature 0.9).
+
+How the tries map to scenarios in `scenarios.py`:
+
+- **Criterion 1:** the 5 tries of `vintage graphic tee under $30`.
+- **Criterion 2:** try 1 of each of 5 different impossible queries, in the order `criteria.md` lists them: price (`black leather jacket under $10`), size (`velvet blazer size XS`), keywords (`sequin ballgown with feathers`), price in words (`graphic tee under five dollars`), combined (`designer ballgown size XXS under $5`). The search has no randomness, so all 5 tries of each scenario came out the same.
+- **Criterion 3:** try 1 of each of 5 different matching queries (`lst_005`, `lst_018`, `lst_019`, `lst_014`, `lst_040`). All 25 tries passed.
+- **Criterion 4:** the 5 captions from `y2k butterfly baby tee under $20` (`lst_002`). Each try is PASS because its caption shares no sentence with any of the other four.
+- **Criterion 5:** try 1 of each of 5 price ceilings: exact listing price ($24), below cheapest ($10), with cents ($29.99), and two ordinary budgets ($20, $40).
 
 **Real output from one try**, pasted as text, naming the file and function
 that produced it:
 
+**Criterion 1:** `agent.py::run_agent`, query `vintage graphic tee under $30`, try 1. The trace shows all three tools ran, and `tools.py::create_fit_card` returned:
+
+```
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: description='vintage graphic tee', size=None, max_price=30.0
+[2] search_listings (via MCP)
+      in:  description='vintage graphic tee', size=None, max_price=30.0
+      out: 10 items: Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey, Vintage Graphic Hoodie — Faded Black … +7 more
+      →    branch: found, selected_item = lst_006 (Graphic Tee — 2003 Tour Bootleg Style)
+[3] suggest_outfit
+      in:  item=lst_006 (Graphic Tee — 2003 Tour Bootleg Style), wardrobe=10 items
+      out: Here are two cool, grungy ways to style your new graphic tee:  *   **Outfit 1:** Pair the Graphic Tee — 2003 T…
+[4] create_fit_card
+      in:  item=lst_006 (Graphic Tee — 2003 Tour Bootleg Style), outfit=session['outfit_suggestion']
+      out: Scored this 2003 tour bootleg tee on depop for just $24 and I'm obsessed. It has that perfectly worn-in grunge…
+
+Fit card: Scored this 2003 tour bootleg tee on depop for just $24 and I'm obsessed. It has that perfectly worn-in grunge vibe that looks so good layered under a black hoodie with baggy denim. Total streetwear steal.
 ```
 
+**Criterion 2:** `agent.py::run_agent`, the miss: query `graphic tee under five dollars`, try 1. The price was never parsed, so the agent didn't stop:
+
+```
+[1] parse_query
+      in:  graphic tee under five dollars
+      out: description='graphic tee under five dollars', size=None, max_price=None
+[2] search_listings (via MCP)
+      in:  description='graphic tee under five dollars', size=None, max_price=None
+      out: 6 items: Graphic Tee — 2003 Tour Bootleg Style, Y2K Baby Tee — Butterfly Print, Vintage Band Tee — Faded Grey … +3 more
+      →    branch: found, selected_item = lst_006 (Graphic Tee — 2003 Tour Bootleg Style)
+[3] suggest_outfit
+      in:  item=lst_006 (Graphic Tee — 2003 Tour Bootleg Style), wardrobe=10 items
+      out: Here are a couple of ways to style your new graphic tee!  * **Outfit 1:** Pair the Graphic Tee with your baggy…
+[4] create_fit_card
+      in:  item=lst_006 (Graphic Tee — 2003 Tour Bootleg Style), outfit=session['outfit_suggestion']
+      out: Scored this sick 2003 tour bootleg graphic tee on depop for just $24 and I'm obsessed. Threw it on with some b…
+```
+
+**Criterion 3:** `agent.py::run_agent`, query `corduroy wide leg pants under $40`, try 1. `lst_005` is the first search result, the `selected_item`, and the item going into both `suggest_outfit` and `create_fit_card`:
+
+```
+[2] search_listings (via MCP)
+      in:  description='corduroy wide leg pants', size=None, max_price=40.0
+      out: 5 items: Corduroy Wide-Leg Pants — Rust, Wide-Leg Linen Trousers — Natural, Low-Rise Cargo Pants — Khaki … +2 more
+      →    branch: found, selected_item = lst_005 (Corduroy Wide-Leg Pants — Rust)
+[3] suggest_outfit
+      in:  item=lst_005 (Corduroy Wide-Leg Pants — Rust), wardrobe=10 items
+[4] create_fit_card
+      in:  item=lst_005 (Corduroy Wide-Leg Pants — Rust), outfit=session['outfit_suggestion']
+```
+
+**Criterion 4:** `tools.py::create_fit_card`, query `y2k butterfly baby tee under $20`, tries 1 and 4. These are the closest pair: the openings are similar, but no sentence matches word for word. The other three captions are in the results file.
+
+```
+1. Scored this little butterfly tee on depop for just $18 and I’m so obsessed. The pastel pink and purple print gives major 2000s mallrat energy, especially paired with baggy denim and chunky sneakers. It’s tiny, nostalgic, and the exact kind of baby tee I've been hunting for.
+4. Scored this little butterfly print Y2K baby tee on depop for just $18 and I’m obsessed. It gives major off-duty model energy when I style it with baggy dark wash jeans and chunky sneakers, but it's equally cute toughened up with combat boots and a denim jacket. Absolute steal for the closet.
+```
+
+**Criterion 5:** `tools.py::search_listings` (called over MCP), query `graphic tee under $24`, try 1. The $24 item is included, so the ceiling is inclusive:
+
+```
+[2] search_listings (via MCP)
+      in:  description='graphic tee', size=None, max_price=24.0
+      out: 4 items: Graphic Tee — 2003 Tour Bootleg Style, Y2K Baby Tee — Butterfly Print, Vintage Band Tee — Faded Grey … +1 more
+      →    branch: found, selected_item = lst_006 (Graphic Tee — 2003 Tour Bootleg Style)
+
+Returned prices: 24.0, 18.0, 19.0, 15.0 (ceiling 24.0)
 ```
 
 ---
@@ -227,13 +302,17 @@ that produced it:
 
 | #   | Criterion | Target | Verdict | How I decided |
 | --- | --------- | ------ | ------- | ------------- |
-| 1   |           |        |         |               |
-| 2   |           |        |         |               |
-| 3   |           |        |         |               |
-| 4   |           |        |         |               |
-| 5   |           |        |         |               |
+| 1   | Matching query completes all three tools | 4 of 5 | MET (5/5) | All 5 traces show `parse_query`, `search_listings`, `suggest_outfit` and `create_fit_card`, and every try ended with a non-empty fit card. |
+| 2   | Impossible query stops before `suggest_outfit` | 5 of 5 | MISSED (4/5) | Price, size, keywords and combined each stopped after `search_listings` with a message naming what to change. `graphic tee under five dollars` ran all four steps and wrote a fit card. |
+| 3   | Selected item `id` matches across session and trace | 5 of 5 | MET (5/5) | For each query, the first title in the search output, the `selected_item` id, and the item id in the `suggest_outfit` and `create_fit_card` steps were the same (`lst_005`, `lst_018`, `lst_019`, `lst_014`, `lst_040`). |
+| 4   | Fit cards on the same item don't repeat sentences | At most 1 of 10 caption pairs share a sentence | MET (0 of 10) | I split each caption on `.`, `!` and `?`, lowercased it and removed extra spaces, then compared all 10 pairs. None shared a sentence. The openings are similar ("Scored this little…") but no full sentence repeats. |
+| 5   | Search results stay within `max_price` | 5 of 5 | MET (5/5) | No returned price was over the ceiling. The $24 item was included at a $24 ceiling, the $10 ceiling returned `[]`, and $29.99 returned only items at $27 or less. |
 
 **Diagnoses**
+
+**Criterion 2 missed on 1 of 5: the price written in words.** The miss happened in the **session**, before the search ran. The branch and the search tool both behaved correctly for what they were given.
+
+`_PRICE_RE` in `agent.py` only matches a number with digits (`$5`, `under 5`). In `graphic tee under five dollars` there are no digits, so `parse_query` set `session["parsed"]["max_price"]` to `None` and left "under five dollars" in the description. `search_listings` therefore got no price ceiling and returned 6 graphic tees. The branch in `run_agent` saw a non-empty list and correctly went on to `suggest_outfit`. The user's $5 budget was lost at parsing, so the agent recommended a $24 shirt to someone who asked for under $5. This is the risk I predicted in `criteria.md` ("the parsing step dropping a constraint like the size or price, which loosens the search enough to return something").
 
 ---
 
@@ -333,11 +412,11 @@ No handler needed: `tools.py::suggest_outfit` checks for an empty `wardrobe["ite
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 | --------- | ------ | ----- | ----- | ----- | ----- | ----- | ------- |
-| 1.        |        |       |       |       |       |       |         |
-| 2.        |        |       |       |       |       |       |         |
-| 3.        |        |       |       |       |       |       |         |
-| 4.        |        |       |       |       |       |       |         |
-| 5.        |        |       |       |       |       |       |         |
+| 1. Matching query completes all three tools | 4 of 5 |       |       |       |       |       |         |
+| 2. Impossible query stops before `suggest_outfit` | 5 of 5 |       |       |       |       |       |         |
+| 3. Selected item `id` matches across session and trace | 5 of 5 |       |       |       |       |       |         |
+| 4. Fit cards on the same item don't repeat sentences | At most 1 of 10 caption pairs share a sentence |       |       |       |       |       |         |
+| 5. Search results stay within `max_price` | 5 of 5 |       |       |       |       |       |         |
 
 **Did it help, and how do I know:**
 

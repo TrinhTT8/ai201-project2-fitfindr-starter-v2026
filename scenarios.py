@@ -35,18 +35,107 @@ SCENARIOS = [
         "wardrobe": "empty",
         "criterion": None,
     },
-    # TODO: add what your criteria 3, 4 and 5 need.
-    #
-    # Set "criterion" to the number in criteria.md that the scenario tests.
-    # "criterion": None means a diagnostic run — useful to have, but it isn't
-    # one of your five, and run_eval.py marks it as such in the table.
-    #
-    # For a state criterion, any normal query works — what you're checking is
-    # what ends up in the session, not what the user typed.
-    #
-    # For a fit-card criterion, you probably want the SAME query listed more
-    # than once, or several different items, depending on what your criterion
-    # actually says.
+    # ── Criterion 2: five different impossible queries ───────────────────────
+    {
+        # Fails on price: nothing in the data costs under $12.
+        "name": "impossible: price",
+        "query": "black leather jacket under $10",
+        "wardrobe": "example",
+        "criterion": 2,
+    },
+    {
+        # Fails on size: no XS listings, and no "One Size" item is a velvet blazer.
+        "name": "impossible: size",
+        "query": "velvet blazer size XS",
+        "wardrobe": "example",
+        "criterion": 2,
+    },
+    {
+        # Fails on keywords: no listing mentions sequins, ballgowns or feathers.
+        "name": "impossible: keywords",
+        "query": "sequin ballgown with feathers",
+        "wardrobe": "example",
+        "criterion": 2,
+    },
+    {
+        # Price written in words, which _PRICE_RE doesn't recognize
+        "name": "impossible: price in words",
+        "query": "graphic tee under five dollars",
+        "wardrobe": "example",
+        "criterion": 2,
+    },
+
+    # ── Criterion 3: five different matching queries ────────────────────────
+    {
+        "name": "state: corduroy pants",       # top match lst_005
+        "query": "corduroy wide leg pants under $40",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        "name": "state: linen blazer",         # top match lst_018
+        "query": "cream linen blazer",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        "name": "state: platform sneakers",    # top match lst_019
+        "query": "platform sneakers size US 8",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        "name": "state: leather belt",         # top match lst_014
+        "query": "brown braided leather belt",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        "name": "state: tie-dye long sleeve",  # top match lst_040
+        "query": "pastel tie dye long sleeve",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        "name": "fit card repetition",         # top match lst_002
+        "query": "y2k butterfly baby tee under $20",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+
+    {
+        # Equal to a listing's exact price: lst_006 costs $24 and must be included.
+        "name": "price: exact listing price",
+        "query": "graphic tee under $24",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        # Below the cheapest listing ($12), so the search should return [].
+        "name": "price: below cheapest",
+        "query": "leather belt under $10",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        # A ceiling with cents.
+        "name": "price: with cents",
+        "query": "vintage tee under $29.99",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        "name": "price: ordinary budget, low",
+        "query": "vintage shirt under $20",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        "name": "price: ordinary budget, high",
+        "query": "denim under $40",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
 ]
 
 WARDROBES = ("example", "empty")
