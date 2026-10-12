@@ -29,6 +29,13 @@ import config
 
 _lines: list[str] = []
 _step_number = 0
+_printing = False  # steps are always recorded; only printed when --trace is on
+
+
+def enable_printing(on: bool = True) -> None:
+    """Print each step as it happens. app.py turns this on for --trace."""
+    global _printing
+    _printing = on
 
 
 def start_trace() -> None:
@@ -61,7 +68,8 @@ def step(name: str, inputs=None, returned=None, note: str = "") -> None:
         line += f"\n      →    {note}"
 
     _lines.append(line)
-    print(line, flush=True)
+    if _printing:
+        print(line, flush=True)
 
 
 def get_trace() -> str:

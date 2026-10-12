@@ -252,19 +252,69 @@ that produced it:
 **Happy path**
 
 ```
-
+$ python app.py ask 'vintage graphic tee under $30' --trace
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: description='vintage graphic tee', size=None, max_price=30.0
+[2] search_listings (via MCP)
+      in:  description='vintage graphic tee', size=None, max_price=30.0
+      out: 10 items: Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey, Vintage Graphic Hoodie — Faded Black … +7 more
+      →    branch: found, selected_item = lst_006 (Graphic Tee — 2003 Tour Bootleg Style)
+[3] suggest_outfit
+      in:  item=lst_006 (Graphic Tee — 2003 Tour Bootleg Style), wardrobe=10 items
+      out: **Outfit 1: 90s Grunge Streetwear** * **Top:** Graphic Tee — 2003 Tour Bootleg Style * **Bottoms:** Baggy stra…
+[4] create_fit_card
+      in:  item=lst_006 (Graphic Tee — 2003 Tour Bootleg Style), outfit=session['outfit_suggestion']
+      out: Scored this bootleg tour tee for just $24 on depop and honestly haven't taken it off since. It’s got that perf…
 ```
 
 **Empty search**
 
 ```
+$ python app.py ask 'vintage graphic tee under $1' --trace
+[1] parse_query
+      in:  vintage graphic tee under $1
+      out: description='vintage graphic tee', size=None, max_price=1.0
+[2] search_listings (via MCP)
+      in:  description='vintage graphic tee', size=None, max_price=1.0
+      out: [] (empty)
+      →    branch: empty, stopping before suggest_outfit
 
+  No listings matched. You could raise your max price above $1, or use different or fewer keywords than "vintage graphic tee".
 ```
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
+The empty search stops after step 2, so it never reaches `suggest_outfit` or `create_fit_card`, and makes 0 model calls.
+
+**On the MCP move:** In `agent.py::run_agent`, I replaced the direct call `search_listings(parsed["description"], parsed["size"], parsed["max_price"])` with `call_tool("search_listings", {"description": ..., "size": ..., "max_price": ...})`, so the search now goes through `mcp_server.py`. I also rewrote the tool's description in `mcp_server.py` to state units (`max_price` in US dollars, inclusive), how sizes are matched, the fields each listing returns, and that it returns `[]` when nothing matches. Nothing behaved differently afterwards: the same query returned the same results (6 listings for `'graphic tee'` under $30, `[]` for no match), and the empty-search branch still works because the tool still returns an empty list, not `None`.
+
+### Failure Modes
+
+**1. Empty search.** Query: `'vintage graphic tee under $1'` (trace above).
+The agent said: *"No listings matched. You could raise your max price above $1, or use different or fewer keywords than "vintage graphic tee"."*
+No handler needed: the branch in `agent.py::run_agent` already stops before `suggest_outfit` and names what to change.
+
+**2. Empty wardrobe.** Query: `python app.py ask 'vintage graphic tee under $30' --empty-wardrobe --trace`
+
+```
+[3] suggest_outfit
+      in:  item=lst_006 (Graphic Tee — 2003 Tour Bootleg Style), wardrobe=0 items
+      out: That 2003 tour bootleg tee is a fantastic, versatile find for building effortless grunge and streetwear looks.…
+```
+
+The agent gave general styling advice instead of naming wardrobe pieces: *"The Off-Duty Streetwear Look: Pair the graphic tee with baggy denim jeans and chunky sneakers…"* and *"The Edgy Night-Out Look: Tuck the tee into a leather skirt or sleek black trousers…"*. The fit card was still written.
+No handler needed: `tools.py::suggest_outfit` checks for an empty `wardrobe["items"]` and asks the model for general advice instead.
+
+**3. Model unavailable.** I changed one character of my key in `.env`, then ran a new query: `python app.py ask 'black shirt under $40' --trace`
+
+```
+[3] suggest_outfit
+      in:  item=lst_003 (Oversized Flannel Shirt — Plaid Red/Black), wardrobe=10 items
+      →    model unavailable, stopping before create_fit_card
+
+  Found lst_003 (Oversized Flannel Shirt — Plaid Red/Black), but couldn't get outfit ideas because the model couldn't be reached. The model rejected your API key. Check GEMINI_API_KEY in your .env file, or create a fresh key at aistudio.google.com. If your key is fine, the service may be busy — try again in a few minutes.
+```
+
+**Handler added.** Before, nothing in `run_agent` caught `ModelUnavailable`. The only reason there was no stack trace was the catch-all in `app.py::main`, which printed `ModelUnavailable: ...` and exited the whole program. I added a `try/except ModelUnavailable` around both model calls in `agent.py::run_agent` (`suggest_outfit` and `create_fit_card`). Each one sets `session["error"]` to a message naming what broke and what to do, logs the failure as a trace step, and ends the loop, so `run_agent` returns the session normally instead of crashing.
 
 ---
 

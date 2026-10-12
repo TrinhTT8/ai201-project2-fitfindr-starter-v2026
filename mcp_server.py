@@ -95,7 +95,7 @@ def search_listings(
         price (float, USD), colors (list[str]), brand (str or null, usually null)
         and platform.
 
-        When nothing matches, returns an empty list [].
+        When nothing matches, returns an empty list [], and a message suggesting user what to change.
         """
         return _search_listings_impl(description, size, max_price)
 #

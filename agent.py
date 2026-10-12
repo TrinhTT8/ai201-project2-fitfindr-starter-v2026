@@ -144,7 +144,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
                 note = f"branch: found, selected_item = {_item_label(session['selected_item'])}"
 
             trace.step(
-                "search_listings",
+                "search_listings (via MCP)",
                 inputs=f"description={parsed['description']!r}, "
                        f"size={parsed['size']!r}, max_price={parsed['max_price']!r}",
                 returned=session["search_results"],
@@ -155,18 +155,50 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             # The id logged here is read from the session — the same value the
             # tool receives — so the trace can be checked against selected_item.
             item = session["selected_item"]
-            session["outfit_suggestion"] = suggest_outfit(item, session["wardrobe"])
+            wardrobe_note = f"wardrobe={len(session['wardrobe'].get('items') or [])} items"
+            try:
+                session["outfit_suggestion"] = suggest_outfit(item, session["wardrobe"])
+            except ModelUnavailable as exc:
+                # The search already worked, so say what we found before what broke.
+                session["error"] = (
+                    f"Found {_item_label(item)}, but couldn't get outfit ideas because "
+                    f"the model couldn't be reached. {exc} "
+                    "If your key is fine, the service may be busy — try again in a few minutes."
+                )
+                trace.step(
+                    "suggest_outfit",
+                    inputs=f"item={_item_label(item)}, {wardrobe_note}",
+                    returned=None,
+                    note="model unavailable, stopping before create_fit_card",
+                )
+                next_step = "done"
+                continue
             trace.step(
                 "suggest_outfit",
-                inputs=f"item={_item_label(item)}, "
-                       f"wardrobe={len(session['wardrobe'].get('items') or [])} items",
+                inputs=f"item={_item_label(item)}, {wardrobe_note}",
                 returned=session["outfit_suggestion"],
             )
             next_step = "fit_card"
 
         elif next_step == "fit_card":
             item = session["selected_item"]
-            session["fit_card"] = create_fit_card(session["outfit_suggestion"], item)
+            try:
+                session["fit_card"] = create_fit_card(session["outfit_suggestion"], item)
+            except ModelUnavailable as exc:
+                # The outfit already came back, so only the caption is missing.
+                session["error"] = (
+                    f"Got outfit ideas for {_item_label(item)}, but couldn't write the fit card because "
+                    f"the model couldn't be reached. {exc} "
+                    "If your key is fine, the service may be busy — try again in a few minutes."
+                )
+                trace.step(
+                    "create_fit_card",
+                    inputs=f"item={_item_label(item)}, outfit=session['outfit_suggestion']",
+                    returned=None,
+                    note="model unavailable, no fit card",
+                )
+                next_step = "done"
+                continue
             trace.step(
                 "create_fit_card",
                 inputs=f"item={_item_label(item)}, outfit=session['outfit_suggestion']",

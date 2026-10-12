@@ -108,6 +108,7 @@ def _ask_one(query, wardrobe, use_trace):
     from agent import run_agent
     import trace as trace_module
 
+    trace_module.enable_printing(use_trace)
     if use_trace:
         trace_module.start_trace()
 
