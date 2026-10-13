@@ -172,6 +172,18 @@ Nothing beats finding the holy grail pair of vintage Levi's 501s while randomly 
 - _What came back:_ It wrote the templates and inserted them at the corresponding spots. The templates have placeholder sections for me to go through and fill out.
 - _What I changed:_ I finished the functions by filling out all the placeholder sections while reading through Claude's explanations.
 
+**Moment 3 (unit 4)**
+
+- _What I asked for:_ I asked Claude to check if my `mcp_server.py` did what the file asked for.
+- _What came back:_ It said the tool was registered and worked, but my description said it returns a message when nothing matches when it actually returns `[]`, and my Tool Inventory listed `title` as an input instead of `size` and `max_price`.
+- _What I changed:_ I had Claude fix the description and the Tool Inventory, then I swapped the agent's direct call for the MCP call myself.
+
+**Moment 4 (unit 4)**
+
+- _What I asked for:_ I asked Claude to score my before run and fill in the run log.
+- _What came back:_ It marked criterion 2 as MISSED (4/5). I had marked it 5/5 because I only looked at one impossible query. It also found that most fit cards open with "Scored", which my criterion 4 didn't catch.
+- _What I changed:_ I kept the MISSED verdict, added a revision to criterion 4, and picked the price-in-words bug as my one fix. I also had Claude shorten its explanations so they read more like mine.
+
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.
@@ -368,7 +380,7 @@ $ python app.py ask 'vintage graphic tee under $1' --trace
 
 The empty search stops after step 2, so it never reaches `suggest_outfit` or `create_fit_card`, and makes 0 model calls.
 
-**On the MCP move:** In `agent.py::run_agent`, I replaced the direct call `search_listings(parsed["description"], parsed["size"], parsed["max_price"])` with `call_tool("search_listings", {"description": ..., "size": ..., "max_price": ...})`, so the search now goes through `mcp_server.py`. I also rewrote the tool's description in `mcp_server.py` to state units (`max_price` in US dollars, inclusive), how sizes are matched, the fields each listing returns, and that it returns `[]` when nothing matches. Nothing behaved differently afterwards: the same query returned the same results (6 listings for `'graphic tee'` under $30, `[]` for no match), and the empty-search branch still works because the tool still returns an empty list, not `None`.
+**On the MCP move:** I swapped the direct `search_listings(...)` call in `agent.py::run_agent` for `call_tool("search_listings", {...})`, so the search now goes through `mcp_server.py`. Nothing behaved differently after: the same queries returned the same results, and no match still returns `[]`, so the empty-search branch still works.
 
 ### Failure Modes
 
@@ -452,6 +464,12 @@ The revised criterion 4 also moved, from 3 of 10 pairs sharing an opening to 1 o
 <!-- For each criterion still missed: what you'd do, and why you stopped where
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
+
+All five original criteria are met after the fix, but a few things are still not right:
+
+- **Fit card template (criterion 4, revised).** Most fit cards still open with "Scored this… for just $…" (48 of 60 in the after run). It passed 1 of 10 in the after run only by chance. I would rewrite the `create_fit_card` prompt so it doesn't push the model into the same opening. I stopped there because this milestone allowed one change, and I used it on the price parsing.
+- **Size parsing bug.** "one size bag" gets parsed as `size='BAG'` because `_SIZE_RE` grabs any short word after "size". I would make "one size" match first and only accept real sizes. I found it while testing the price fix and left it so I didn't change two things at once.
+- **Criterion 1 is too easy.** All five tries used the same query. I would test it with five differently worded queries, but I didn't get to it in this unit.
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
