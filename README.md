@@ -408,21 +408,39 @@ No handler needed: `tools.py::suggest_outfit` checks for an empty `wardrobe["ite
 
      `python run_eval.py --label after` -->
 
-**What I changed:**
+**What I changed:** `agent.py::parse_query` now reads prices written as words. A new `_WORD_PRICE_RE` finds a number word after "under", "below", "less than", "max" or "up to" (0–99, such as "five" or "twenty-five", plus "hundred"), with an optional "dollars" or "bucks". It rewrites the price as digits ("under five dollars" becomes "under $5") before the existing `_PRICE_RE` runs. Prices written with digits are parsed exactly as before. Nothing else changed.
 
-**Which failure it was meant to fix:**
+**Which failure it was meant to fix:** Criterion 2's miss. `graphic tee under five dollars` lost its $5 budget at parsing (`max_price=None`), so the search returned 6 tees and the agent never stopped.
 
 ### Run Log — After
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 | --------- | ------ | ----- | ----- | ----- | ----- | ----- | ------- |
-| 1. Matching query completes all three tools | 4 of 5 |       |       |       |       |       |         |
-| 2. Impossible query stops before `suggest_outfit` | 5 of 5 |       |       |       |       |       |         |
-| 3. Selected item `id` matches across session and trace | 5 of 5 |       |       |       |       |       |         |
-| 4. Fit cards on the same item don't repeat sentences | At most 1 of 10 caption pairs share a sentence |       |       |       |       |       |         |
-| 5. Search results stay within `max_price` | 5 of 5 |       |       |       |       |       |         |
+| 1. Matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before `suggest_outfit` | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Selected item `id` matches across session and trace | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit cards on the same item don't repeat sentences | At most 1 of 10 caption pairs share a sentence | PASS | PASS | PASS | PASS | PASS | MET (0 of 10 pairs) |
+| 5. Search results stay within `max_price` | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Did it help, and how do I know:**
+Source: `results/run_2026-10-12_2323_after.md`, produced by `run_eval.py::main` with the same scenarios, 5 tries each, caching off, temperature 0.9. Tries map to scenarios the same way as in the before run.
+
+Criterion 2's fixed try (query `graphic tee under five dollars`, try 1), from `agent.py::run_agent`:
+
+```
+[1] parse_query
+      in:  graphic tee under five dollars
+      out: description='graphic tee', size=None, max_price=5.0
+[2] search_listings (via MCP)
+      in:  description='graphic tee', size=None, max_price=5.0
+      out: [] (empty)
+      →    branch: empty, stopping before suggest_outfit
+
+No listings matched. You could raise your max price above $5, or use different or fewer keywords than "graphic tee".
+```
+
+**Did it help, and how do I know:** Yes. Criterion 2 went from MISSED (4/5) to MET (5/5), and nothing else changed. The price-in-words query now parses as `max_price=5.0` and stops after the search in all 5 tries. Criteria 1, 3 and 5 got the same results as before, and no try crashed. I also checked that the other 17 scenario queries parse exactly as they did before the change.
+
+The revised criterion 4 also moved, from 3 of 10 pairs sharing an opening to 1 of 10, but that wasn't the fix: I didn't touch the fit card prompt. It's the model varying between runs. Across the whole after run, 48 of 60 fit cards still open with "Scored" (80%), compared with 49 of 65 (75%) before, so the template problem is still there.
 
 <!-- If it made things worse, say that. Honestly reported, that earns full
      credit and is more interesting than one that worked. -->

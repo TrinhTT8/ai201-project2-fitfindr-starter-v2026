@@ -221,6 +221,37 @@ _PRICE_RE = re.compile(
     r"(?:(?:under|below|less than|max|up to|<)\s*\$?|\$)\s*(\d+(?:\.\d+)?)",
     re.IGNORECASE,
 )
+# Prices written as words: "under five dollars", "below twenty-five bucks",
+# "up to a hundred". _PRICE_RE only reads digits, so these get rewritten to
+# "under $5" etc. before it runs. Covers 0-99 and "hundred".
+_UNITS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight",
+          "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+          "sixteen", "seventeen", "eighteen", "nineteen"]
+_TENS = ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+_NUMBER_WORDS_RE = (
+    r"(?:a\s+|one\s+)?hundred"
+    rf"|(?:{'|'.join(_TENS)})(?:[\s-]+(?:{'|'.join(_UNITS[1:10])}))?"
+    rf"|{'|'.join(sorted(_UNITS, key=len, reverse=True))}"
+)
+_WORD_PRICE_RE = re.compile(
+    rf"\b(under|below|less than|max|up to)\s+({_NUMBER_WORDS_RE})\b(?:\s+(?:dollars?|bucks))?",
+    re.IGNORECASE,
+)
+
+
+def _words_to_number(words: str) -> int:
+    words = words.lower()
+    if "hundred" in words:
+        return 100
+    total = 0
+    for word in re.split(r"[\s-]+", words):
+        if word in _TENS:
+            total += 20 + 10 * _TENS.index(word)
+        elif word in _UNITS:
+            total += _UNITS.index(word)
+    return total
+
+
 # "size M", "size: XXS", "size US 9", "size W30 L30", "size one size"
 _SIZE_RE = re.compile(
     r"\bsize:?\s+(one size|us\s*\d+(?:\.\d+)?|w\d+(?:\s*l\d+)?|[a-z]{1,4})\b",
@@ -243,6 +274,9 @@ def parse_query(query: str) -> dict:
             → {"description": "vintage graphic tee", "size": "M", "max_price": 30.0}
     """
     text = query or ""
+    text = _WORD_PRICE_RE.sub(
+        lambda m: f"{m.group(1)} ${_words_to_number(m.group(2))}", text
+    )
 
     price_match = _PRICE_RE.search(text)
     max_price = float(price_match.group(1)) if price_match else None
