@@ -91,6 +91,10 @@ Across 5 runs of create_fit_card on the same item, at most 1 of the 10 pairs of 
 
 A caption is supposed to feel like a fresh post, so getting the same sentences back defeats the point of asking for one. The caption comes from the model, though, and short captions about the same item can land on a common phrase by chance (like "Thrifted this for $18!"), so one repeated pair is tolerable. I count pairs rather than captions because a shared sentence always involves two captions, so "4 of 5 captions" would really have meant 5 of 5. More than one repeated pair wouldn't be chance: since `run_eval.py` turns the cache off, it would mean `TEMPERATURE` is too low in `config.py` or my prompt is pushing the model toward a fixed template, which is exactly what this target is meant to catch.
 
+> **Revised in unit 4:** Across 5 runs of `create_fit_card` on the same item, at most 1 of the 10 caption pairs opens with the same first three words (lowercased, punctuation removed).
+>
+> **Why revised:** The original measured the wrong thing. Matching whole sentences word for word is so strict that captions built on the same template still pass: four of my five baby-tee captions opened "Scored this little…" or "Scored this pink…", and 49 of all 65 fit cards in the before run opened with "Scored". None of them repeated a full sentence, because one or two words always changed. Catching a fixed template was the whole reason for this criterion, and the opening words are where the template shows. The tolerance stays at 1 pair, the same as the original.
+
 ---
 
 ## 5. Your choice
