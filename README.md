@@ -182,7 +182,7 @@ Nothing beats finding the holy grail pair of vintage Levi's 501s while randomly 
 
 - _What I asked for:_ I asked Claude to score my before run and fill in the run log.
 - _What came back:_ It marked criterion 2 as MISSED (4/5). I had marked it 5/5 because I only looked at one impossible query. It also found that most fit cards open with "Scored", which my criterion 4 didn't catch.
-- _What I changed:_ I kept the MISSED verdict, added a revision to criterion 4, and picked the price-in-words bug as my one fix. I also had Claude shorten its explanations so they read more like mine.
+- _What I changed:_ I kept the MISSED verdict, added a revision to criterion 4, and picked the price-in-words bug as my one fix.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
@@ -202,13 +202,13 @@ Nothing beats finding the holy grail pair of vintage Levi's 501s while randomly 
      `python run_eval.py --label before` runs everything and writes the table
      into results/. Paste it here and fill in the verdicts. -->
 
-| Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
-| --------- | ------ | ----- | ----- | ----- | ----- | ----- | ------- |
-| 1. Matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
-| 2. Impossible query stops before `suggest_outfit` | 5 of 5 | PASS | PASS | PASS | FAIL | PASS | MISSED (4/5) |
-| 3. Selected item `id` matches across session and trace | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
-| 4. Fit cards on the same item don't repeat sentences | At most 1 of 10 caption pairs share a sentence | PASS | PASS | PASS | PASS | PASS | MET (0 of 10 pairs) |
-| 5. Search results stay within `max_price` | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| Criterion                                              | Target                                         | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict             |
+| ------------------------------------------------------ | ---------------------------------------------- | ----- | ----- | ----- | ----- | ----- | ------------------- |
+| 1. Matching query completes all three tools            | 4 of 5                                         | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)           |
+| 2. Impossible query stops before `suggest_outfit`      | 5 of 5                                         | PASS  | PASS  | PASS  | FAIL  | PASS  | MISSED (4/5)        |
+| 3. Selected item `id` matches across session and trace | 5 of 5                                         | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)           |
+| 4. Fit cards on the same item don't repeat sentences   | At most 1 of 10 caption pairs share a sentence | PASS  | PASS  | PASS  | PASS  | PASS  | MET (0 of 10 pairs) |
+| 5. Search results stay within `max_price`              | 5 of 5                                         | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)           |
 
 Source: `results/run_2026-10-12_1509_before.md`, produced by `run_eval.py::main` (5 tries per scenario, caching off, temperature 0.9).
 
@@ -312,13 +312,13 @@ Returned prices: 24.0, 18.0, 19.0, 15.0 (ceiling 24.0)
      Look for a pattern. Three misses on the same tool is one problem, not
      three. -->
 
-| #   | Criterion | Target | Verdict | How I decided |
-| --- | --------- | ------ | ------- | ------------- |
-| 1   | Matching query completes all three tools | 4 of 5 | MET (5/5) | All 5 traces show `parse_query`, `search_listings`, `suggest_outfit` and `create_fit_card`, and every try ended with a non-empty fit card. |
-| 2   | Impossible query stops before `suggest_outfit` | 5 of 5 | MISSED (4/5) | Price, size, keywords and combined each stopped after `search_listings` with a message naming what to change. `graphic tee under five dollars` ran all four steps and wrote a fit card. |
-| 3   | Selected item `id` matches across session and trace | 5 of 5 | MET (5/5) | For each query, the first title in the search output, the `selected_item` id, and the item id in the `suggest_outfit` and `create_fit_card` steps were the same (`lst_005`, `lst_018`, `lst_019`, `lst_014`, `lst_040`). |
-| 4   | Fit cards on the same item don't repeat sentences | At most 1 of 10 caption pairs share a sentence | MET (0 of 10) | I split each caption on `.`, `!` and `?`, lowercased it and removed extra spaces, then compared all 10 pairs. None shared a sentence. The openings are similar ("Scored this little…") but no full sentence repeats. Against the revised criterion (see Diagnoses), it's MISSED (3 of 10). |
-| 5   | Search results stay within `max_price` | 5 of 5 | MET (5/5) | No returned price was over the ceiling. The $24 item was included at a $24 ceiling, the $10 ceiling returned `[]`, and $29.99 returned only items at $27 or less. |
+| #   | Criterion                                           | Target                                         | Verdict       | How I decided                                                                                                                                                                                                                                                                              |
+| --- | --------------------------------------------------- | ---------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Matching query completes all three tools            | 4 of 5                                         | MET (5/5)     | All 5 traces show `parse_query`, `search_listings`, `suggest_outfit` and `create_fit_card`, and every try ended with a non-empty fit card.                                                                                                                                                 |
+| 2   | Impossible query stops before `suggest_outfit`      | 5 of 5                                         | MISSED (4/5)  | Price, size, keywords and combined each stopped after `search_listings` with a message naming what to change. `graphic tee under five dollars` ran all four steps and wrote a fit card.                                                                                                    |
+| 3   | Selected item `id` matches across session and trace | 5 of 5                                         | MET (5/5)     | For each query, the first title in the search output, the `selected_item` id, and the item id in the `suggest_outfit` and `create_fit_card` steps were the same (`lst_005`, `lst_018`, `lst_019`, `lst_014`, `lst_040`).                                                                   |
+| 4   | Fit cards on the same item don't repeat sentences   | At most 1 of 10 caption pairs share a sentence | MET (0 of 10) | I split each caption on `.`, `!` and `?`, lowercased it and removed extra spaces, then compared all 10 pairs. None shared a sentence. The openings are similar ("Scored this little…") but no full sentence repeats. Against the revised criterion (see Diagnoses), it's MISSED (3 of 10). |
+| 5   | Search results stay within `max_price`              | 5 of 5                                         | MET (5/5)     | No returned price was over the ceiling. The $24 item was included at a $24 ceiling, the $10 ceiling returned `[]`, and $29.99 returned only items at $27 or less.                                                                                                                          |
 
 **Diagnoses**
 
@@ -385,7 +385,7 @@ The empty search stops after step 2, so it never reaches `suggest_outfit` or `cr
 ### Failure Modes
 
 **1. Empty search.** Query: `'vintage graphic tee under $1'` (trace above).
-The agent said: *"No listings matched. You could raise your max price above $1, or use different or fewer keywords than "vintage graphic tee"."*
+The agent said: _"No listings matched. You could raise your max price above $1, or use different or fewer keywords than "vintage graphic tee"."_
 No handler needed: the branch in `agent.py::run_agent` already stops before `suggest_outfit` and names what to change.
 
 **2. Empty wardrobe.** Query: `python app.py ask 'vintage graphic tee under $30' --empty-wardrobe --trace`
@@ -396,7 +396,7 @@ No handler needed: the branch in `agent.py::run_agent` already stops before `sug
       out: That 2003 tour bootleg tee is a fantastic, versatile find for building effortless grunge and streetwear looks.…
 ```
 
-The agent gave general styling advice instead of naming wardrobe pieces: *"The Off-Duty Streetwear Look: Pair the graphic tee with baggy denim jeans and chunky sneakers…"* and *"The Edgy Night-Out Look: Tuck the tee into a leather skirt or sleek black trousers…"*. The fit card was still written.
+The agent gave general styling advice instead of naming wardrobe pieces: _"The Off-Duty Streetwear Look: Pair the graphic tee with baggy denim jeans and chunky sneakers…"_ and _"The Edgy Night-Out Look: Tuck the tee into a leather skirt or sleek black trousers…"_. The fit card was still written.
 No handler needed: `tools.py::suggest_outfit` checks for an empty `wardrobe["items"]` and asks the model for general advice instead.
 
 **3. Model unavailable.** I changed one character of my key in `.env`, then ran a new query: `python app.py ask 'black shirt under $40' --trace`
@@ -426,13 +426,13 @@ No handler needed: `tools.py::suggest_outfit` checks for an empty `wardrobe["ite
 
 ### Run Log — After
 
-| Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
-| --------- | ------ | ----- | ----- | ----- | ----- | ----- | ------- |
-| 1. Matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
-| 2. Impossible query stops before `suggest_outfit` | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
-| 3. Selected item `id` matches across session and trace | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
-| 4. Fit cards on the same item don't repeat sentences | At most 1 of 10 caption pairs share a sentence | PASS | PASS | PASS | PASS | PASS | MET (0 of 10 pairs) |
-| 5. Search results stay within `max_price` | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| Criterion                                              | Target                                         | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict             |
+| ------------------------------------------------------ | ---------------------------------------------- | ----- | ----- | ----- | ----- | ----- | ------------------- |
+| 1. Matching query completes all three tools            | 4 of 5                                         | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)           |
+| 2. Impossible query stops before `suggest_outfit`      | 5 of 5                                         | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)           |
+| 3. Selected item `id` matches across session and trace | 5 of 5                                         | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)           |
+| 4. Fit cards on the same item don't repeat sentences   | At most 1 of 10 caption pairs share a sentence | PASS  | PASS  | PASS  | PASS  | PASS  | MET (0 of 10 pairs) |
+| 5. Search results stay within `max_price`              | 5 of 5                                         | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)           |
 
 Source: `results/run_2026-10-12_2323_after.md`, produced by `run_eval.py::main` with the same scenarios, 5 tries each, caching off, temperature 0.9. Tries map to scenarios the same way as in the before run.
 
